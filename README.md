@@ -1,6 +1,6 @@
 # quongo
-Simple Queue implemented over MongoDB using a REST interface
+Simple Queue implemented over MongoDB in GO, using a REST interface.
 
 # Note
 
-The product is under internal development and will be made public after we removed internal dependencies.
+I'm using [Git Flow](https://danielkummer.github.io/git-flow-cheatsheet/) to handle the repository operations.
