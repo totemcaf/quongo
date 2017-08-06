@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+# https://ant0ine.github.io/go-json-rest/
+go get github.com/ant0ine/go-json-rest/tree/v3.3.2/rest
+
+# https://github.com/StephanDollberg/go-json-rest-middleware-jwt

@@ -1,7 +1,7 @@
 package main
 
 import (
-  "net/http"
+  "github.com/ant0ine/go-json-rest/rest"
   "runtime"
 )
 
@@ -11,9 +11,8 @@ type BuildInfo struct {
   GoVersion string  `json:"goVersion"`
 }
 
-func SysStatus(w http.ResponseWriter, r *http.Request) {
+func SysStatus(w rest.ResponseWriter, r *rest.Request) {
   v := BuildInfo{"quongo", VERSION, runtime.Version() }
-
-  Ok(w, v)
+  w.WriteJson(v)
 }
 
