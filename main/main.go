@@ -10,12 +10,15 @@ import (
   "os"
   "strconv"
   "strings"
+  "gopkg.in/mgo.v2"
 )
 
 const VERSION = "1.0.0"
 
 func main() {
   port, err := getIntEnv("QUONGO_PORT", 7070)
+  mongoUrls := getStrEnv("MONGO_URL", "localhost:27017")
+  mongoDb := getStrEnv("MONGO_DB", "quongo")
 
   if err != nil {
     log.Fatal("Invalid port number in QUONGO_PORT ", err)
@@ -24,10 +27,27 @@ func main() {
 
   fmt.Println("Quongo ", VERSION, " running in port ", port)
 
-  queueRep := queue.NewQueueRepository()
-  queueCtr := queue.NewQueueController(queueRep)
+  // Mongo
+  session, err := mgo.Dial(mongoUrls)
 
-  msgRep := message.NewMsgRepository()
+  if err != nil {
+    panic(err)
+  }
+
+  var aLogger *log.Logger
+  aLogger = log.New(os.Stderr, "", log.LstdFlags)
+  mgo.SetLogger(aLogger)
+
+  mgo.SetDebug(true)
+
+  defer session.Close()
+
+  // Repositories
+  msgRep := message.NewMsgRepository(session, mongoDb)
+  queueRep := queue.NewQueueRepository(session, mongoDb, msgRep)
+
+  // Controllers
+  queueCtr := queue.NewQueueController(queueRep)
   msgCtrl := message.NewMsgController(msgRep)
 
   routes := append(queueCtr.Routes, msgCtrl.Routes...)
@@ -40,6 +60,7 @@ func main() {
 
   stack := [] rest.Middleware{
     &rest.AccessLogApacheMiddleware{},
+//      Format: rest.CombinedLogFormat,
     &rest.TimerMiddleware{},
     &rest.RecorderMiddleware{},
     &rest.PoweredByMiddleware{},
@@ -48,15 +69,7 @@ func main() {
     },
     &rest.JsonIndentMiddleware{},
     &rest.ContentTypeCheckerMiddleware{},
-
-    &rest.AccessLogApacheMiddleware{
-      Format: rest.CombinedLogFormat,
-    },
-    &rest.TimerMiddleware{},
-    &rest.RecorderMiddleware{},
-    &rest.RecoverMiddleware{},
     &rest.GzipMiddleware{},
-    &rest.ContentTypeCheckerMiddleware{},
   }
 
 
@@ -93,5 +106,15 @@ func getIntEnv(name string, defValue int) (int, error) {
     return defValue, nil
   } else {
     return strconv.Atoi(v)
+  }
+}
+
+func getStrEnv(name string, defValue string) string {
+  v := strings.TrimSpace(os.Getenv(name))
+
+  if v == "" {
+    return defValue
+  } else {
+    return v
   }
 }

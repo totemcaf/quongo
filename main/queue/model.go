@@ -5,9 +5,9 @@ import (
 )
 
 type Queue struct {
-  Name      string        `json:"_id"`
+  Name      string        `json:"name" bson:"_id"`
   Created   time.Time     `json:"created"`
-  VisWnd    time.Duration `json:"visibilityWindow"`
+  VisWnd    time.Duration `json:"visibilityWindow" bson:"visibilityWindow"`
 }
 
 func NewQueue(name string) (*Queue, error) {
@@ -18,14 +18,15 @@ func NewQueue(name string) (*Queue, error) {
 
 type QueueWithStats struct {
   *Queue
-  Stats     *QueueStats  `json:"stats"`
+  Stats     QueueStats  `json:"stats"`
 }
-
-type QueuesWithStats []QueueWithStats
 
 type QueueStats struct {
-  Total     int16       `json:"total"`
-  Hidden    int16       `json:"hidden"`
-  InProcess int16       `json:"inProcess"`
+  Total     int       `json:"total"`
+  Hidden    int       `json:"hidden"`
+  InProcess int       `json:"inProcess"`
 }
 
+func NewQueueWithStat(queue *Queue, total int, hidden int, inProcess int) *QueueWithStats {
+  return &QueueWithStats{queue, QueueStats{total, hidden, inProcess}}
+}

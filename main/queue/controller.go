@@ -16,10 +16,10 @@ func NewQueueController(queueRep *Repository) *Controller {
 
   routes := [] *rest.Route{
     rest.Get("/v1/queue", ctrl.QueueAll),
-    rest.Get("/v1/queue/{queueId}", ctrl.QueueGet),
+    rest.Get("/v1/queue/#queueId", ctrl.QueueGet),
     // Queue services),
     rest.Post("/v1/queue", ctrl.QueueAdd, ),
-    rest.Put("/v1/queue/{queueId}", ctrl.QueueUpd),
+    rest.Put("/v1/queue/#queueId", ctrl.QueueUpd),
   }
 
   ctrl.Routes = routes
@@ -29,7 +29,7 @@ func NewQueueController(queueRep *Repository) *Controller {
 
 // GET  	/v1/queue                                        @controllers.Controller.findAll()
 func (c *Controller) QueueAll(w rest.ResponseWriter, r *rest.Request) {
-  q, e := c.repository.findAll()
+  q, e := c.repository.findAll(0, 100)
 
   if e == nil {
     w.WriteJson(q)
