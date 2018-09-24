@@ -29,3 +29,9 @@
 
 # IntelliJ
 /out/
+
+# Mongo
+/vendor/
+
+# Local credentials
+pw.txt

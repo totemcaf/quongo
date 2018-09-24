@@ -1,0 +1,51 @@
+package model
+
+import (
+	"regexp"
+	"time"
+)
+
+const MaxQueueNameLen = 32
+const DefaultVisibilityWindow = 30 * time.Second
+
+type QueueRepository interface {
+	/**
+	 * Report at most 'size' queues starting from 'skip'
+	 */
+	FindAll(skip int, size int) ([]*Queue, error)
+
+	/**
+	 * Return the message with the provided id or nil.
+	 */
+	FindById(queueId string) (*Queue, error)
+	Add(queue *Queue) (*Queue, error)
+}
+
+type Queue struct {
+	Name    string        `json:"name" bson:"_id"`
+	Created time.Time     `json:"created"`
+	VisWnd  time.Duration `json:"visibilityWindow" bson:"visibilityWindow"`
+	Push    bool          `json:"push"`
+}
+
+var queueNamePattern = regexp.MustCompile(`^[-a-zA-Z0-9_]+$`)
+
+// Report if name is valid queue name
+func (queue Queue) IsQueueNameValid(name string) bool {
+	return len(name) > 0 && len(name) <= MaxQueueNameLen && queueNamePattern.MatchString(name)
+}
+
+type QueueWithStats struct {
+	*Queue
+	Stats QueueStats `json:"stats"`
+}
+
+type QueueStats struct {
+	Total     int `json:"total"`
+	Hidden    int `json:"hidden"`
+	InProcess int `json:"inProcess"`
+}
+
+func NewQueueWithStat(queue *Queue, total int, hidden int, inProcess int) *QueueWithStats {
+	return &QueueWithStats{queue, QueueStats{total, hidden, inProcess}}
+}

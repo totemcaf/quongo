@@ -10,6 +10,14 @@ Simple Queue implemented over MongoDB in GO, using a REST interface.
 * simple RESTFull interface
 * fully asynchronous implementation, no blocking calls
 
+# Configuration
+
+* MONGO_URL: List of URLs separated by command of mongodb hosts. defaults to: "localhost:27017"
+* MONGO_USER: User name to connect as, defaults to "quongo"
+* MONGO_PWD: User password to connect as, defaults to "quongosecret"
+* MONGO_DB: Name of database to use, default to "quongo"
+* QUONGO_PORT: Port where the Quongo app is going to listen
+
 # API
 
 ### Create a queue.
@@ -94,3 +102,5 @@ As always, already processed messages does not longer exist in the queue, so the
 # Note
 
 I'm using [Git Flow](https://danielkummer.github.io/git-flow-cheatsheet/) to handle the repository operations.
+
+Also following Clear Architecture as describe [here](https://manuel.kiessling.net/2012/09/28/applying-the-clean-architecture-to-go-applications/).
