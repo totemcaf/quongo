@@ -33,7 +33,7 @@ func main() {
 	aLogger = log.New(os.Stderr, "", log.LstdFlags)
 
 	// Database
-	db, err := mongodb.NewDatabase(mongoUrls, user, pwd, mongoDb, aLogger)
+	db, err := mgo.NewDatabase(mongoUrls, user, pwd, mongoDb, aLogger)
 
 	if err != nil {
 		panic(err)
@@ -42,8 +42,8 @@ func main() {
 	defer db.Close()
 
 	// Repositories
-	queueRep := mongodb.NewQueueRepository(db)
-	msgRep := mongodb.NewMongodbRepositoryProvider(db)
+	queueRep := mgo.NewQueueRepository(db)
+	msgRep := mgo.NewMongodbRepositoryProvider(db)
 
 	// Interactors
 	queueInt := usecase.NewQueueInteractor(queueRep)

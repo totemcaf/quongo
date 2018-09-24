@@ -104,3 +104,6 @@ As always, already processed messages does not longer exist in the queue, so the
 I'm using [Git Flow](https://danielkummer.github.io/git-flow-cheatsheet/) to handle the repository operations.
 
 Also following Clear Architecture as describe [here](https://manuel.kiessling.net/2012/09/28/applying-the-clean-architecture-to-go-applications/).
+
+https://godoc.org/github.com/mongodb/mongo-go-driver/mongo
+https://godoc.org/github.com/mongodb/mongo-go-driver/mongo/clientopt

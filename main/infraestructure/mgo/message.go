@@ -1,4 +1,4 @@
-package mongodb
+package mgo
 
 import (
 	"github.com/totemcaf/quongo/main/model"
