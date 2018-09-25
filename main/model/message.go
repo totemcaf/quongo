@@ -26,14 +26,14 @@ type MessageRepository interface {
 }
 
 type Message struct {
-	Id         bson.ObjectId `json:"_id"`
-	Payload    string        `json:"payload,string"` // Opaque data of this message
-	Created    time.Time     `json:"created"`        // When the message was received and persisted
-	Programmed time.Time     `json:"programmed"`     // First time the message is available
-	Visible    time.Time     `json:"visible"`        // When the message can be claimed for processing
-	Cid        string        `json:"cid"`            // Correlation Id
-	Gid        string        `json:"gif"`            // Group Id. Only one message of same group if can be in the queue
-	Holder     string        `json:"holder"`         // Opaque id of the processing entity of this message
-	Retries    int16         `json:"retries"`        // Number of times the message was claimed
-	Ack        string        `json:"ack"`            // Confirmation key of this message processing
+	Id         bson.ObjectId  `json:"_id"`
+	Payload    string         `json:"payload,string"` // Opaque data of this message
+	Created    time.Time      `json:"created"`        // When the message was received and persisted
+	Programmed time.Time      `json:"programmed"`     // First time the message is available
+	Visible    time.Time      `json:"visible"`        // When the message can be claimed for processing
+	Cid        string         `json:"cid"`            // Correlation Id
+	Gid        string         `json:"gif"`            // Group Id. Only one message of same group if can be in the queue
+	Holder     string         `json:"holder"`         // Opaque id of the processing entity of this message
+	Retries    int16          `json:"retries"`        // Number of times the message was claimed
+	Ack        *bson.ObjectId `json:"ack"`            // Confirmation key of this message processing
 }

@@ -5,6 +5,7 @@ import (
 	"github.com/totemcaf/quongo/main/utils"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+	"log"
 	"time"
 )
 
@@ -32,7 +33,9 @@ func NewMongodbRepository(queueId string, db *Database) *MessageRepository {
 
 // Return a selector of visible messages
 func isVisible() bson.M {
-	return bson.M{"visible": bson.M{"$lte": time.Now()}}
+	now := time.Now()
+	log.Printf("Visible before %v", now)
+	return bson.M{"visible": bson.M{"$lte": now}}
 }
 
 // A sort expression by the original visible time
@@ -42,7 +45,7 @@ const byProgrammed = "programmed"
  * Find at most 'limit' visible messages from 'offset' sorted by the original visible time
  */
 func (r *MessageRepository) Find(offset int, limit int) ([]model.Message, error) {
-	var result []model.Message
+	result := make([]model.Message, 0, 1)
 
 	err := r.table.Find(isVisible()).Sort(byProgrammed).Skip(offset).Limit(limit).All(&result)
 
@@ -66,9 +69,11 @@ func (r *MessageRepository) FindById(mid string) (*model.Message, error) {
 func (r *MessageRepository) Pop(delay time.Duration) (*model.Message, error) {
 	change := mgo.Change{
 		Update: bson.M{
-			"ack":     bson.NewObjectId(),
-			"$inv":    bson.M{"retries": 1},
-			"visible": utils.FromNow(delay),
+			"$set": bson.M{
+				"ack":     bson.NewObjectId(),
+				"visible": utils.FromNow(delay),
+			},
+			"$inc": bson.M{"retries": 1},
 		},
 		ReturnNew: true,
 	}

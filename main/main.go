@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/ant0ine/go-json-rest/rest"
-	"github.com/totemcaf/quongo/main/infraestructure/mongodb"
+	"github.com/totemcaf/quongo/main/infraestructure/mgo"
 	"github.com/totemcaf/quongo/main/interface"
 	"github.com/totemcaf/quongo/main/usecase"
 	"log"

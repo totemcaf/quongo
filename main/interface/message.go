@@ -79,7 +79,7 @@ func (c *MessageView) Pop(w rest.ResponseWriter, r *rest.Request) {
 
 	if e2 != nil {
 		rest.Error(w, e2.Error(), http.StatusInternalServerError) // TODO (caf) Discriminar si el error es interno o de datos
-	} else if msg != nil {
+	} else if msg == nil {
 		rest.Error(w, "No pending messages", http.StatusNotFound)
 	} else {
 		w.WriteJson(msg)
@@ -143,7 +143,7 @@ func (c *MessageView) pushOne(w rest.ResponseWriter, r *rest.Request, id bson.Ob
 		Id:         id,
 		Visible:    visible,
 		Created:    now,
-		Ack:        "",
+		Ack:        nil,
 		Cid:        "",
 		Gid:        "",
 		Holder:     "",
