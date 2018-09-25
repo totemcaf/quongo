@@ -82,5 +82,5 @@ func (r *Repository) Add(queue *model.Queue) (*model.Queue, error) {
 }
 
 func (r *Repository) Update(queue *model.Queue) (*model.Queue, error) {
-	return queue, nil
+	return queue, nil // TODO do it
 }

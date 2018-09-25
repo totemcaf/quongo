@@ -23,8 +23,8 @@ func (i *QueueInteractor) FindById(queueId string) (*model.Queue, error) {
 	return i.repository.FindById(queueId)
 }
 
-func (i *QueueInteractor) Complete(queue *model.Queue) model.QueueWithStats {
-	return model.QueueWithStats{} // TODO
+func (i *QueueInteractor) Complete(queue *model.Queue) *model.QueueWithStats {
+	return i.repository.Complete(queue)
 }
 
 func (i *QueueInteractor) IsQueueNameValid(queueId string) bool {

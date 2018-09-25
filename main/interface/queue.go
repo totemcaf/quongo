@@ -10,7 +10,7 @@ import (
 type QueueInteractor interface {
 	FindAll(offset int, limit int) ([]*model.Queue, error)
 	FindById(queueId string) (*model.Queue, error)
-	Complete(queue *model.Queue) model.QueueWithStats
+	Complete(queue *model.Queue) *model.QueueWithStats
 	IsQueueNameValid(queueId string) bool
 	Add(queue model.Queue) (*model.Queue, error)
 	Update(queue model.Queue) (*model.Queue, error)

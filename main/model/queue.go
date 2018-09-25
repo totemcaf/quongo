@@ -19,6 +19,7 @@ type QueueRepository interface {
 	 */
 	FindById(queueId string) (*Queue, error)
 	Add(queue *Queue) (*Queue, error)
+	Complete(queue *Queue) *QueueWithStats
 }
 
 type Queue struct {
@@ -36,8 +37,8 @@ func (queue Queue) IsQueueNameValid(name string) bool {
 }
 
 type QueueWithStats struct {
-	*Queue
-	Stats QueueStats `json:"stats"`
+	*Queue `json:"queue"`
+	Stats  QueueStats `json:"stats"`
 }
 
 type QueueStats struct {
