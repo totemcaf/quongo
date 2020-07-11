@@ -39,3 +39,8 @@ func NewID() MID {
 func (id MID) IsEmpty() bool {
 	return id == Empty
 }
+
+// ToString returns the message id as a string
+func (id MID) ToString() string {
+	return string(id)
+}

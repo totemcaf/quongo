@@ -3,7 +3,7 @@ package model
 import (
 	"time"
 
-	"github.com/totemcaf/quongo/main/model/message"
+	"github.com/totemcaf/quongo/app/model/message"
 )
 
 // MessageRepositoryProvider ...
@@ -13,6 +13,13 @@ type MessageRepositoryProvider interface {
 
 // MessageRepository persist the messages of the queues
 type MessageRepository interface {
+	// Add ads a new message to the queue
+	Add(message *Message) (*Message, error)
+
+	Update(message *Message) error
+
+	// TODO ...
+
 	// Return the message with the provided id or nil.
 	FindByID(mid string) (*Message, error)
 
@@ -22,12 +29,9 @@ type MessageRepository interface {
 	/**
 	 * Returns the first message that is visible and set it as taken (set its ACK value, and increment the retries)
 	 * (This is provided by the repo, because it should be atomic)
-	 * If no message is pending, returns nil
+	 * If no message is pending, returns nil or empty array
 	 */
-	Pop(quantity int) ([]*Message, error)
-
-	// Add ads a new message to the queue
-	Add(message *Message) (*Message, error)
+	PopAvailable(quantity int) ([]*Message, error)
 
 	// Ack acknoledge the given message if ackId is the corresponding in the message
 	Ack(message *Message, ackID string) error
@@ -43,8 +47,8 @@ type Message struct {
 	Cid        string      `json:"cid"`        // Correlation Id
 	Gid        string      `json:"gid"`        // Group Id. Only one message of same group if can be in the queue
 	Holder     string      `json:"holder"`     // Opaque id of the processing entity of this message
-	Retries    int16       `json:"retries"`    // Number of times the message was claimed
-	Ack        *string     `json:"ack"`        // Confirmation key of this message processing
+	Retries    int         `json:"retries"`    // Number of times the message was claimed
+	Ack        message.MID `json:"ack"`        // Confirmation key of this message processing
 	Headers    []Header
 }
 
@@ -53,4 +57,16 @@ type Message struct {
 type Header struct {
 	name  string
 	value string
+}
+
+// DelayTo sets the visibility time to the given one making this message available in the feature
+func (m *Message) DelayTo(time time.Time) *Message {
+	m.Visible = time
+	return m
+}
+
+// Lock mark this message as taken by a consumer. The mark is token that can be used to delete or unlock
+func (m *Message) Lock() *Message {
+	m.Ack = message.NewID()
+	return m
 }

@@ -25,7 +25,7 @@ func NewSystemView(version string) *SystemView {
 	ctrl := SystemView{version: version}
 
 	routes := []*rest.Route{
-		rest.Get("/system/stats", ctrl.sysStatus),
+		rest.Get("/info", ctrl.sysStatus),
 	}
 
 	ctrl.routes = routes

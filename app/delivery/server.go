@@ -15,14 +15,13 @@ type Handler interface {
 
 // Server ...
 type Server struct {
-	port           int
 	handlers       []Handler
 	systemHandlers []Handler
 }
 
 // NewServer ...
-func NewServer(port int) *Server {
-	return &Server{port: port, handlers: []Handler{}, systemHandlers: []Handler{}}
+func NewServer() *Server {
+	return &Server{handlers: []Handler{}, systemHandlers: []Handler{}}
 }
 
 // Add ...
@@ -36,7 +35,13 @@ func (s *Server) AddSystem(handler Handler) {
 }
 
 // Start ...
-func (s *Server) Start() error {
+func (s *Server) Start(port int) error {
+	return http.ListenAndServe(":"+strconv.Itoa(port), s.MakeHandler())
+}
+
+// MakeHandler returns the handl of all the endpoints defined for the server
+// Visible for tests
+func (s *Server) MakeHandler() http.Handler {
 	stack := []rest.Middleware{
 		&rest.AccessLogApacheMiddleware{},
 		//      Format: rest.CombinedLogFormat,
@@ -66,10 +71,12 @@ func (s *Server) Start() error {
 	systemRouter := s.makeRouter(s.systemHandlers)
 	system.SetApp(systemRouter)
 
-	http.Handle("/api/", http.StripPrefix("/api", api.MakeHandler()))
-	http.Handle("/", system.MakeHandler())
+	mux := http.ServeMux{}
 
-	return http.ListenAndServe(":"+strconv.Itoa(s.port), nil)
+	mux.Handle("/api/", http.StripPrefix("/api", api.MakeHandler()))
+	mux.Handle("/", system.MakeHandler())
+
+	return &mux
 }
 
 func (s *Server) makeRouter(handlers []Handler) rest.App {

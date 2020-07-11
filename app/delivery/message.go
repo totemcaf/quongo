@@ -3,12 +3,13 @@ package delivery
 import (
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/ant0ine/go-json-rest/rest"
-	"github.com/totemcaf/quongo/main/model"
-	"github.com/totemcaf/quongo/main/model/message"
-	"github.com/totemcaf/quongo/main/utils"
+	"github.com/totemcaf/quongo/app/model"
+	"github.com/totemcaf/quongo/app/model/message"
+	"github.com/totemcaf/quongo/app/utils"
 )
 
 // MessageInteractor ...
@@ -24,18 +25,19 @@ type MessageInteractor interface {
 type MessageView struct {
 	messageInt MessageInteractor
 	queueInt   QueueInteractor
+	clock      utils.Clock
 	routes     []*rest.Route
 }
 
 // NewMessageView TODO
-func NewMessageView(messageInteractor MessageInteractor, queueInteractor QueueInteractor) *MessageView {
-	ctrl := MessageView{messageInteractor, queueInteractor, nil}
+func NewMessageView(messageInteractor MessageInteractor, queueInteractor QueueInteractor, clock utils.Clock) *MessageView {
+	ctrl := MessageView{messageInteractor, queueInteractor, clock, nil}
 
 	routes := []*rest.Route{
 		rest.Put("/v1/queues/#queueId/messages/#mid", ctrl.PushWithID),
+		rest.Get("/v1/queues/#queueId/pop", ctrl.Pop),
 
 		rest.Get("/v1/queues/#queueId/messages", ctrl.All),
-		rest.Get("/v1/queues/#queueId/pop", ctrl.Pop),
 		rest.Get("/v1/queues/#queueId/messages/#mid", ctrl.Get),
 		rest.Get("/v1/queues/#queueId/pop-many", ctrl.PopMany),
 		rest.Post("/v1/queues/#queueId/messages", ctrl.Push),
@@ -78,19 +80,33 @@ func (v *MessageView) All(w rest.ResponseWriter, r *rest.Request) {
 	}
 }
 
-// Pop GET     /v1/queue/:queueId/pop                          @controllers.MessageView.pop(queueId: String, holder: Option[String] ?= None, window: Option[Int] ?= None)
+// Pop GET one visible message and lock it    /v1/queue/:queueId/pop
 func (v *MessageView) Pop(w rest.ResponseWriter, r *rest.Request) {
 	queueID := r.PathParam("queueId")
 
-	msg, e2 := v.messageInt.Pop(queueID, 1)
+	msgs, e2 := v.messageInt.Pop(queueID, 1)
 
 	if e2 != nil {
 		rest.Error(w, e2.Error(), http.StatusInternalServerError) // TODO (caf) Discriminar si el error es interno o de datos
-	} else if msg == nil {
+	} else if msgs == nil || len(msgs) == 0 {
 		rest.Error(w, "No pending messages", http.StatusNotFound)
 	} else {
-		w.WriteJson(msg)
+		msg := msgs[0]
+		headers := w.Header()
+
+		headers.Add("X-Mid", msg.ID.ToString())
+		headers.Add("X-Ack", msg.Ack.ToString())
+		headers.Add("X-Created", utils.Time2Str(msg.Created))
+		headers.Add("X-Retries", strconv.Itoa(msg.Retries))
+		// TODO: Content-Type
+		writeStr(w, msg.Payload)
 	}
+}
+
+func writeStr(w rest.ResponseWriter, body string) {
+	rw := w.(http.ResponseWriter)
+
+	rw.Write([]byte(body))
 }
 
 // Get     /v1/queue/:queueId/message/:mid                  @controllers.MessageView.findMsg(queueId: String, mid: String)
@@ -109,7 +125,7 @@ func (v *MessageView) Get(w rest.ResponseWriter, r *rest.Request) {
 	}
 }
 
-// PushWithID     /v1/queue/:queueId/message/:mid                  @controllers.MessageView.push(queueId: String, mid: String, cid: Option[String] ?= None, gid: Option[String] ?= None)
+// PushWithID     /v1/queue/:queueId/message/:mid
 func (v *MessageView) PushWithID(w rest.ResponseWriter, r *rest.Request) {
 	mid, err := message.ParseID(r.PathParam("mid"))
 	if err != nil {
@@ -120,11 +136,11 @@ func (v *MessageView) PushWithID(w rest.ResponseWriter, r *rest.Request) {
 
 // Push    /v1/queue/:queueId/message                       @controllers.MessageView.pushAnonymous(queueId: String,     cid: Option[String] ?= None, gid: Option[String] ?= None)
 func (v *MessageView) Push(w rest.ResponseWriter, r *rest.Request) {
-	v.pushOne(w, r, message.NewID())
+	v.pushOne(w, r, message.Empty)
 }
 
 func (v *MessageView) pushOne(w rest.ResponseWriter, r *rest.Request, id message.MID) {
-	now := time.Now()
+	now := v.now()
 	var visible time.Time
 	timeStr := r.FormValue("time")
 
@@ -150,7 +166,7 @@ func (v *MessageView) pushOne(w rest.ResponseWriter, r *rest.Request, id message
 		ID:         id,
 		Visible:    visible,
 		Created:    now,
-		Ack:        nil,
+		Ack:        "",
 		Cid:        "",
 		Gid:        "",
 		Holder:     "",
@@ -160,14 +176,15 @@ func (v *MessageView) pushOne(w rest.ResponseWriter, r *rest.Request, id message
 	}
 
 	queueID := r.PathParam("queueId")
-	newMsg, e3 := v.messageInt.Add(queueID, &msg)
+	_, e3 := v.messageInt.Add(queueID, &msg)
 
 	if e3 != nil {
-		rest.Error(w, e2.Error(), http.StatusInternalServerError)
+		rest.Error(w, e3.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	w.WriteJson(newMsg)
+	w.Header().Add("X-Mid", string(id))
+	w.WriteHeader(http.StatusCreated)
 }
 
 // KeepAlive     /v1/queue/:queueId/message/:mid/ack/:ack         @controllers.MessageView.keepAlive(queueId: String, mid: String, ack: String)
@@ -193,4 +210,8 @@ func (v *MessageView) PopAck(w rest.ResponseWriter, r *rest.Request) {
 // PopAckMany ...
 func (v *MessageView) PopAckMany(w rest.ResponseWriter, r *rest.Request) {
 
+}
+
+func (v *MessageView) now() time.Time {
+	return v.clock.Now()
 }

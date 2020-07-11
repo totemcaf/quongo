@@ -2,26 +2,24 @@ package memory
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"sync"
 
-	"github.com/totemcaf/quongo/main/model"
+	"github.com/totemcaf/quongo/app/model"
+	"github.com/totemcaf/quongo/app/utils"
 )
-
-type queueEntry struct {
-	metadata    model.Queue
-	messageRepo model.MessageRepository
-}
 
 // Repository ...
 type Repository struct {
-	queues map[string]queueEntry
+	queues map[string]*model.Queue
+	clock  utils.Clock
 	lock   sync.RWMutex
 }
 
 // NewQueueRepository ...
-func NewQueueRepository() *Repository {
-	return &Repository{}
+func NewQueueRepository(clock utils.Clock) *Repository {
+	return &Repository{queues: make(map[string]*model.Queue, 0), clock: clock}
 }
 
 // FindAll Reports at most 'size' queues starting from 'skip'
@@ -53,27 +51,39 @@ func (r *Repository) Complete(queue *model.Queue) *model.QueueWithStats {
 // FindByID Returns a queue with the provided id (name)
 func (r *Repository) FindByID(id string) (*model.Queue, error) {
 	log.Printf("Finding queue by id: %v", id)
-	result := model.Queue{}
 
-	err := errors.New("Not implemented")
+	r.lock.RLock()
+	defer r.lock.RUnlock()
 
-	if err == nil {
-		log.Printf("Found: %v", result.Name)
-		return &result, nil
+	queue, found := r.queues[id]
+
+	if found {
+		log.Printf("Found: %v", queue.Name)
+		return queue, nil
 	}
 
 	log.Printf("Not found")
-	return nil, err
+	return nil, fmt.Errorf("Not found queue '%v'", id)
 }
 
 // Add ...
 func (r *Repository) Add(queue *model.Queue) (*model.Queue, error) {
-	log.Printf("Inserting queue %v", queue.Name)
-	err := errors.New("Not implemented")
-	if err != nil {
-		log.Printf("Error:      %v", err)
+	log.Printf("Adding queue %v", queue.Name)
+
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	_, ok := r.queues[queue.Name]
+
+	if ok {
+		return nil, fmt.Errorf("Duplicate queue '%v'", queue.Name)
 	}
-	return queue, err
+
+	r.queues[queue.Name] = queue.
+		WithRepository(NewMessageRepository(queue.Name, r.clock)).
+		WithClock(r.clock)
+
+	return queue, nil
 }
 
 // Update ...
@@ -83,41 +93,5 @@ func (r *Repository) Update(queue *model.Queue) (*model.Queue, error) {
 
 // ForQueue ...
 func (r *Repository) ForQueue(queueID string) (model.MessageRepository, error) {
-	if queueID == "" {
-		return nil, errors.New("Invalid queue id, it is empty")
-	}
-
-	queue, found := r.findExistentQueue(queueID)
-
-	if found {
-		return queue.messageRepo, nil
-	}
-
-	return r.createQueueWithDefaults(queueID).messageRepo, nil
-}
-
-func (r *Repository) findExistentQueue(queueID string) (queueEntry, bool) {
-	r.lock.RLock()
-	defer r.lock.RUnlock()
-
-	entry, err := r.queues[queueID]
-	return entry, err
-}
-
-func (r *Repository) createQueueWithDefaults(queueID string) queueEntry {
-	r.lock.Lock()
-
-	// Check again in case another coroutine won and create it before me
-	entry, found := r.queues[queueID]
-
-	if found {
-		return entry
-	}
-
-	entry = queueEntry{
-		metadata:    model.Queue{},
-		messageRepo: NewMessageRepository(),
-	}
-
-	return entry
+	return nil, nil
 }

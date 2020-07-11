@@ -2,10 +2,10 @@ package delivery
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/ant0ine/go-json-rest/rest"
-	"github.com/totemcaf/quongo/main/model"
+	"github.com/totemcaf/quongo/app/model"
+	"github.com/totemcaf/quongo/app/utils"
 )
 
 // QueueInteractor ...
@@ -13,7 +13,6 @@ type QueueInteractor interface {
 	FindAll(offset int, limit int) ([]*model.Queue, error)
 	FindByID(queueID string) (*model.Queue, error)
 	Complete(queue *model.Queue) *model.QueueWithStats
-	IsQueueNameValid(queueID string) bool
 	Add(queue model.Queue) (*model.Queue, error)
 	Update(queue model.Queue) (*model.Queue, error)
 }
@@ -21,13 +20,14 @@ type QueueInteractor interface {
 // QueueView ...
 type QueueView struct {
 	interactor QueueInteractor
+	clock      utils.Clock
 	routes     []*rest.Route
 }
 
 // NewQueueView ...
 func NewQueueView(interactor QueueInteractor) *QueueView {
 
-	ctrl := QueueView{interactor: interactor}
+	ctrl := QueueView{interactor: interactor, clock: utils.ProductionClock()}
 
 	routes := []*rest.Route{
 		rest.Get("/v1/queue", ctrl.QueueAll),
@@ -102,7 +102,7 @@ func (v *QueueView) QueueAdd(w rest.ResponseWriter, r *rest.Request) {
 func (v *QueueView) QueueUpd(w rest.ResponseWriter, r *rest.Request) {
 	if queue, ok := payloadAsQueue(w, r); ok {
 		queue.Name = r.PathParam("queueId")
-		queue.Created = time.Now()
+		queue.Created = v.clock.Now()
 
 		updated, errU := v.interactor.Update(*queue)
 
